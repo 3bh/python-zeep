@@ -45,12 +45,13 @@ def _make_verify_key(cert_data):
 class MemorySignature(object):
     """Sign given SOAP envelope with WSSE sig using given key and cert."""
 
-    def __init__(self, key_data, cert_data, password=None):
+    def __init__(self, key_data, cert_data, verify_cert_data, password=None):
         check_xmlsec_import()
 
         self.key_data = key_data
         self.cert_data = cert_data
         self.password = password
+        self.verify_cert_data = verify_cert_data
 
     def apply(self, envelope, headers):
         key = _make_sign_key(self.key_data, self.cert_data, self.password)
@@ -58,7 +59,7 @@ class MemorySignature(object):
         return envelope, headers
 
     def verify(self, envelope):
-        key = _make_verify_key(self.cert_data)
+        key = _make_verify_key(self.verify_cert_data or self.cert_data)
         _verify_envelope_with_key(envelope, key)
         return envelope
 
@@ -66,11 +67,10 @@ class MemorySignature(object):
 class Signature(MemorySignature):
     """Sign given SOAP envelope with WSSE sig using given key file and cert file."""
 
-    def __init__(self, key_file, certfile, password=None):
+    def __init__(self, key_file, certfile, password=None, verify_certfile=None):
         super(Signature, self).__init__(
-            _read_file(key_file), _read_file(certfile), password
+            _read_file(key_file), _read_file(certfile), _read_file(verify_certfile) if verify_certfile else None, password
         )
-
 
 class BinarySignature(Signature):
     """Sign given SOAP envelope with WSSE sig using given key file and cert file.
